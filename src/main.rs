@@ -1,6 +1,6 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fs::File, io::BufWriter};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use reqwest::header::HeaderValue;
 
@@ -34,10 +34,12 @@ fn get_account_id(args: &Cli) -> Result<String> {
     Ok(resp["id"].as_str().unwrap().to_string())
 }
 
-fn parse_link(header: &HeaderValue) -> Option<String> {
+fn parse_link(header: &HeaderValue, dir: &str) -> Option<String> {
+    let rel = format!("rel=\"{}\"", dir);
     if let Ok(link_str) = header.to_str() {
+        log::info!("Link str: {}", link_str);
         for link_part in link_str.split(',') {
-            if link_part.contains("rel=\"next\"") {
+            if link_part.contains(&rel) {
                 if let Some(next_url) = link_part
                     .split(';')
                     .next()
@@ -52,16 +54,34 @@ fn parse_link(header: &HeaderValue) -> Option<String> {
     None
 }
 
-fn get_statuses(args: &Cli, account_id: &str) -> Result<Vec<serde_json::Value>> {
+fn get_statuses(
+    args: &Cli,
+    account_id: &str,
+    min_id: Option<&str>,
+) -> Result<Vec<serde_json::Value>> {
     let mut has_more = true;
+
     let mut url = format!("/api/v1/accounts/{}/statuses", account_id);
+    let mut params = vec![];
+
+    // The direction of the links in linkes header to follow is a bit odd. If you get all the statuses
+    // from the beginning, "next" goes towards newer statuses - but if you use `since_id`, "prev" goes
+    // towards newer statuses?!
+    let mut dir = "next";
+    if let Some(min_id) = min_id {
+        params.push(("since_id", min_id));
+        dir = "prev";
+    }
 
     let mut result: Vec<serde_json::Value> = vec![];
 
     while has_more {
         let client = reqwest::blocking::Client::new();
+        let full_url = format!("{}{}", args.host, &url);
+        log::info!("getting {}", full_url);
         let resp = client
-            .get(format!("{}{}", args.host, &url))
+            .get(&full_url)
+            .query(&params)
             .bearer_auth(&args.access_token)
             .send()?;
 
@@ -70,18 +90,15 @@ fn get_statuses(args: &Cli, account_id: &str) -> Result<Vec<serde_json::Value>> 
         if let Some(next_url) = resp
             .headers()
             .get(reqwest::header::LINK)
-            .and_then(parse_link)
+            .and_then(|x| parse_link(x, &dir))
         {
             has_more = true;
             url = next_url.replace(&args.host, "");
+            params.clear();
         }
 
         let json: serde_json::Value = resp.json()?;
-        if let Some(statuses) = json.as_array() {
-            result.extend_from_slice(&statuses);
-        } else {
-            println!("Expected array, got {}", json)
-        }
+        result.extend_from_slice(json.as_array().context("expected JSON array")?);
     }
 
     Ok(result)
@@ -93,15 +110,40 @@ fn compare_key(key: &str, a: &serde_json::Value, b: &serde_json::Value) -> Order
 
 fn main() -> Result<()> {
     dotenvy::dotenv()?;
+    env_logger::init();
 
     let args = Cli::parse();
     let account_id = get_account_id(&args)?;
 
-    let mut statuses = get_statuses(&args, &account_id)?;
+    let mut statuses: Vec<serde_json::Value> = vec![];
+
+    let max_id = if args.update_in_place {
+        // TODO(miikka) Give a good error message if args.file is not set.
+        let f = File::open(&args.file.clone().unwrap())?;
+        let v: serde_json::Value = serde_json::from_reader(f)?;
+        statuses = v.as_array().unwrap().clone();
+        statuses.sort_by(|a, b| compare_key("created_at", b, a));
+        statuses
+            .get(0)
+            .map(|s| s["id"].as_str().unwrap().to_owned())
+    } else {
+        None
+    };
+
+    log::info!("max ID: {:?}", max_id);
+
+    statuses.extend(get_statuses(&args, &account_id, max_id.as_deref())?);
     statuses.sort_by(|a, b| compare_key("created_at", a, b));
     let output = serde_json::Value::Array(statuses);
 
-    println!("{}", serde_json::to_string_pretty(&output)?);
+    // TODO(miikka) If file is `-`, write to stdout.
+    let writer: Box<dyn std::io::Write> = if let Some(filename) = args.file {
+        Box::new(BufWriter::new(File::create(filename)?))
+    } else {
+        Box::new(std::io::stdout())
+    };
+
+    serde_json::to_writer_pretty(writer, &output)?;
 
     Ok(())
 }

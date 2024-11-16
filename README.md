@@ -11,7 +11,7 @@ cargo run -- --help
 
 You can pass in the settings via the command-line, use environmental variables, or use `.env` file.
 
-I recommend using `.env` file. Here's a template with the requiredi settings.
+I recommend using `.env` file. Here's a template with the required settings.
 
 ```
 # The base URL of your Mastodon instance. E.g. https://mastodon.social
