@@ -13,6 +13,9 @@ struct Cli {
     #[arg(long, env = "GMH_ACCESS_TOKEN")]
     access_token: String,
 
+    #[arg(long, env = "GMH_ACCOUNT_ID")]
+    account_id: Option<String>,
+
     #[arg(short = 'u', long)]
     update_in_place: bool,
 
@@ -83,7 +86,8 @@ fn get_statuses(
             .get(&full_url)
             .query(&params)
             .bearer_auth(&args.access_token)
-            .send()?;
+            .send()?
+            .error_for_status()?;
 
         has_more = false;
 
@@ -114,7 +118,11 @@ fn main() -> Result<()> {
     env_logger::init();
 
     let args = Cli::parse();
-    let account_id = get_account_id(&args)?;
+    let account_id = if let Some(ref accound_id) = args.account_id {
+        accound_id
+    } else {
+        &get_account_id(&args)?
+    };
 
     let mut statuses: Vec<serde_json::Value> = vec![];
 
@@ -133,7 +141,7 @@ fn main() -> Result<()> {
 
     log::info!("max ID: {:?}", max_id);
 
-    statuses.extend(get_statuses(&args, &account_id, max_id.as_deref())?);
+    statuses.extend(get_statuses(&args, account_id, max_id.as_deref())?);
     statuses.sort_by(|a, b| compare_key("created_at", a, b));
     let output = serde_json::Value::Array(statuses);
 
