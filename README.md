@@ -1,11 +1,11 @@
-# get-mastodon-history (GMH)
+# get-my-history (GMH)
 
 This is a small command-line tool to get your Mastodon posts (toots) as one big JSON file.
 
 ## Setup
 
 ```bash
-git clone https://github.com/miikka/get-mastodon-history.git
+git clone https://github.com/miikka/get-my-history.git
 cargo run -- --help
 ```
 

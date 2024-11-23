@@ -1,20 +1,20 @@
 {
   "outputs": {
-    "get-mastodon-history": {
+    "get-my-history": {
       "platforms": {
         "macos-x86_64": {
-          "regex": "^get-mastodon-history-x86_64-apple-darwin",
-          "path": "get-mastodon-history-x86_64-apple-darwin/get-mastodon-history",
+          "regex": "^get-my-history-x86_64-apple-darwin",
+          "path": "get-my-history-x86_64-apple-darwin/get-my-history",
           "format": "tar.xz"
         },
         "macos-aarch64": {
-          "regex": "^get-mastodon-history-aarch64-apple-darwin",
-          "path": "get-mastodon-history-aarch64-apple-darwin/get-mastodon-history",
+          "regex": "^get-my-history-aarch64-apple-darwin",
+          "path": "get-my-history-aarch64-apple-darwin/get-my-history",
           "format": "tar.xz"
         },
         "linux-x86_64": {
-          "regex": "^get-mastodon-history-x86_64-unknown-linux-gnu",
-          "path": "get-mastodon-history-x86_64-unknown-linux-gnu/get-mastodon-history",
+          "regex": "^get-my-history-x86_64-unknown-linux-gnu",
+          "path": "get-my-history-x86_64-unknown-linux-gnu/get-my-history",
           "format": "tar.xz"
         }
       }

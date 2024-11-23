@@ -1,8 +1,8 @@
 [package]
-name = "get-mastodon-history"
+name = "get-my-history"
 version = "0.1.10"
 edition = "2021"
-repository = "https://github.com/miikka/get-mastodon-history"
+repository = "https://github.com/miikka/get-my-history"
 license = "MIT"
 publish = false
 
