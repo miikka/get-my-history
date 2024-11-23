@@ -1,4 +1,4 @@
 release:
-    git checkout main
+    git checkout -q main
     git show -s
-    cargo release patch
+    cargo release patch --execute
