@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/miikka/get-mastodon-history"
 license = "MIT"
+publish = false
 
 [dependencies]
 anyhow = "1.0.93"
