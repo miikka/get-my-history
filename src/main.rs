@@ -25,8 +25,8 @@ fn api_get(args: &Cli, path: &str) -> Result<serde_json::Value> {
         .get(format!("{}{}", args.host, path))
         .bearer_auth(&args.access_token)
         .send()?
-        .json()?;
-    Ok(resp)
+        .error_for_status()?;
+    Ok(resp.json()?)
 }
 
 fn get_account_id(args: &Cli) -> Result<String> {
@@ -110,6 +110,7 @@ fn compare_key(key: &str, a: &serde_json::Value, b: &serde_json::Value) -> Order
 
 fn main() -> Result<()> {
     let _ = dotenvy::dotenv();
+
     env_logger::init();
 
     let args = Cli::parse();
