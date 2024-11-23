@@ -118,9 +118,9 @@ fn main() -> Result<()> {
 
     let mut statuses: Vec<serde_json::Value> = vec![];
 
-    let max_id = if args.update_in_place {
+    let max_id = if let Some(ref filename) = args.file {
         // TODO(miikka) Give a good error message if args.file is not set.
-        let f = File::open(args.file.clone().unwrap())?;
+        let f = File::open(filename)?;
         let v: serde_json::Value = serde_json::from_reader(f)?;
         statuses = v.as_array().unwrap().clone();
         statuses.sort_by(|a, b| compare_key("created_at", b, a));
@@ -137,9 +137,8 @@ fn main() -> Result<()> {
     statuses.sort_by(|a, b| compare_key("created_at", a, b));
     let output = serde_json::Value::Array(statuses);
 
-    // TODO(miikka) If file is `-`, write to stdout.
-    let writer: Box<dyn std::io::Write> = if let Some(filename) = args.file {
-        Box::new(BufWriter::new(File::create(filename)?))
+    let writer: Box<dyn std::io::Write> = if args.update_in_place {
+        Box::new(BufWriter::new(File::create(args.file.unwrap())?))
     } else {
         Box::new(std::io::stdout())
     };
