@@ -16,11 +16,6 @@
           "regex": "^get-mastodon-history-x86_64-unknown-linux-gnu",
           "path": "get-mastodon-history",
           "format": "tar.xz"
-        },
-        "windows-x86_64": {
-          "regex": "^get-mastodon-history-x86_64-pc-windows",
-          "path": "get-mastodon-history.exe",
-          "format": "zip"
         }
       }
     }
