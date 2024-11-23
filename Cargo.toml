@@ -19,3 +19,6 @@ serde_json = "1.0.132"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[package.metadata.dist]
+dist = true
