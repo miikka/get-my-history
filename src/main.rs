@@ -90,7 +90,7 @@ fn get_statuses(
         if let Some(next_url) = resp
             .headers()
             .get(reqwest::header::LINK)
-            .and_then(|x| parse_link(x, &dir))
+            .and_then(|x| parse_link(x, dir))
         {
             has_more = true;
             url = next_url.replace(&args.host, "");
@@ -119,12 +119,11 @@ fn main() -> Result<()> {
 
     let max_id = if args.update_in_place {
         // TODO(miikka) Give a good error message if args.file is not set.
-        let f = File::open(&args.file.clone().unwrap())?;
+        let f = File::open(args.file.clone().unwrap())?;
         let v: serde_json::Value = serde_json::from_reader(f)?;
         statuses = v.as_array().unwrap().clone();
         statuses.sort_by(|a, b| compare_key("created_at", b, a));
-        statuses
-            .get(0)
+        statuses.first()
             .map(|s| s["id"].as_str().unwrap().to_owned())
     } else {
         None
