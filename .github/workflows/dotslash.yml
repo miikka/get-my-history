@@ -8,6 +8,9 @@ on:
     types:
       - completed
 
+permissions:
+  contents: write
+
 jobs:
   generate-dotslash-files:
     name: Generating and uploading DotSlash files
