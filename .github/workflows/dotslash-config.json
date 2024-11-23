@@ -3,11 +3,11 @@
     "get-mastodon-history": {
       "platforms": {
         "macos-x86_64": {
-          "regex": "^get-mastodon-history-x86_64-apple-darwin-",
+          "regex": "^get-mastodon-history-x86_64-apple-darwin",
           "path": "get-mastodon-history"
         },
         "macos-aarch64": {
-          "regex": "^get-mastodon-history-aarch64-apple-darwin-",
+          "regex": "^get-mastodon-history-aarch64-apple-darwin",
           "path": "get-mastodon-history"
         },
         "linux-x86_64": {
@@ -15,7 +15,7 @@
           "path": "get-mastodon-history"
         },
         "windows-x86_64": {
-          "regex": "^get-mastodon-history-x86_64-pc-windows-",
+          "regex": "^get-mastodon-history-x86_64-pc-windows",
           "path": "get-mastodon-history.exe"
         }
       }
