@@ -109,7 +109,7 @@ fn compare_key(key: &str, a: &serde_json::Value, b: &serde_json::Value) -> Order
 }
 
 fn main() -> Result<()> {
-    dotenvy::dotenv()?;
+    let _ = dotenvy::dotenv();
     env_logger::init();
 
     let args = Cli::parse();
@@ -123,7 +123,8 @@ fn main() -> Result<()> {
         let v: serde_json::Value = serde_json::from_reader(f)?;
         statuses = v.as_array().unwrap().clone();
         statuses.sort_by(|a, b| compare_key("created_at", b, a));
-        statuses.first()
+        statuses
+            .first()
             .map(|s| s["id"].as_str().unwrap().to_owned())
     } else {
         None
