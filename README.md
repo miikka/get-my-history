@@ -4,6 +4,9 @@ This is a small command-line tool to get your Mastodon posts (toots) as one big 
 
 ## Setup
 
+There [releases available](https://github.com/miikka/get-my-history/releases) on GitHub with pre-built binaries.
+Alternatively, you can build the project yourself:
+
 ```bash
 git clone https://github.com/miikka/get-my-history.git
 cargo run -- --help
