@@ -11,7 +11,13 @@ struct Cli {
     host: String,
 
     #[arg(long, env = "GMH_ACCESS_TOKEN")]
-    access_token: String,
+    access_token: Option<String>,
+
+    #[arg(long, env = "GMH_CLIENT_ID")]
+    client_id: Option<String>,
+
+    #[arg(long, env = "GMH_CLIENT_SECRET")]
+    client_secret: Option<String>,
 
     #[arg(long, env = "GMH_ACCOUNT_ID")]
     account_id: Option<String>,
@@ -22,19 +28,59 @@ struct Cli {
     file: Option<String>,
 }
 
-fn api_get(args: &Cli, path: &str) -> Result<serde_json::Value> {
+fn get_access_token(args: &Cli) -> Result<String> {
+    if let Some(token) = &args.access_token {
+        return Ok(token.clone());
+    }
+
+    if let (Some(client_id), Some(client_secret)) = (&args.client_id, &args.client_secret) {
+        let client = reqwest::blocking::Client::new();
+        let resp = client
+            .post(format!("{}/oauth/token", args.host))
+            .form(&[
+                ("client_id", client_id),
+                ("client_secret", client_secret),
+                ("redirect_uri", &"urn:ietf:wg:oauth:2.0:oob".to_owned()),
+                ("grant_type", &"client_credentials".to_owned()),
+            ])
+            .send()?
+            .error_for_status()?;
+
+        let json: serde_json::Value = resp.json()?;
+        return Ok(json["access_token"]
+            .as_str()
+            .context("access_token not found in response")?
+            .to_string());
+    }
+
+    anyhow::bail!("Either access_token or both client_id and client_secret must be provided")
+}
+
+fn api_get(host: &str, access_token: &str, path: &str) -> Result<serde_json::Value> {
     let client = reqwest::blocking::Client::new();
     let resp = client
-        .get(format!("{}{}", args.host, path))
-        .bearer_auth(&args.access_token)
+        .get(format!("{}{}", host, path))
+        .bearer_auth(access_token)
         .send()?
         .error_for_status()?;
     Ok(resp.json()?)
 }
 
-fn get_account_id(args: &Cli) -> Result<String> {
-    let resp = api_get(args, "/api/v1/accounts/verify_credentials")?;
-    Ok(resp["id"].as_str().unwrap().to_string())
+fn get_account_id(host: &str, access_token: &str) -> Result<String> {
+    match api_get(host, access_token, "/api/v1/accounts/verify_credentials") {
+        Ok(resp) => Ok(resp["id"].as_str().unwrap().to_string()),
+        Err(e) => {
+            if e.to_string().contains("422 Unprocessable Entity") {
+                Err(anyhow::anyhow!(
+                    "Unable to get account ID automatically. \
+                    Please provide your account ID manually using --account-id \
+                    or GMH_ACCOUNT_ID"
+                ))
+            } else {
+                Err(e)
+            }
+        }
+    }
 }
 
 fn parse_link(header: &HeaderValue, dir: &str) -> Option<String> {
@@ -58,7 +104,8 @@ fn parse_link(header: &HeaderValue, dir: &str) -> Option<String> {
 }
 
 fn get_statuses(
-    args: &Cli,
+    host: &str,
+    access_token: &str,
     account_id: &str,
     min_id: Option<&str>,
 ) -> Result<Vec<serde_json::Value>> {
@@ -80,12 +127,12 @@ fn get_statuses(
 
     while has_more {
         let client = reqwest::blocking::Client::new();
-        let full_url = format!("{}{}", args.host, &url);
+        let full_url = format!("{}{}", host, &url);
         log::info!("getting {}", full_url);
         let resp = client
             .get(&full_url)
             .query(&params)
-            .bearer_auth(&args.access_token)
+            .bearer_auth(access_token)
             .send()?
             .error_for_status()?;
 
@@ -97,7 +144,7 @@ fn get_statuses(
             .and_then(|x| parse_link(x, dir))
         {
             has_more = true;
-            url = next_url.replace(&args.host, "");
+            url = next_url.replace(host, "");
             params.clear();
         }
 
@@ -118,10 +165,12 @@ fn main() -> Result<()> {
     env_logger::init();
 
     let args = Cli::parse();
-    let account_id = if let Some(ref accound_id) = args.account_id {
-        accound_id
+    let access_token = get_access_token(&args)?;
+
+    let account_id = if let Some(ref account_id) = args.account_id {
+        account_id
     } else {
-        &get_account_id(&args)?
+        &get_account_id(&args.host, &access_token)?
     };
 
     let mut statuses: Vec<serde_json::Value> = vec![];
@@ -141,7 +190,12 @@ fn main() -> Result<()> {
 
     log::info!("max ID: {:?}", max_id);
 
-    statuses.extend(get_statuses(&args, account_id, max_id.as_deref())?);
+    statuses.extend(get_statuses(
+        &args.host,
+        &access_token,
+        account_id,
+        max_id.as_deref(),
+    )?);
     statuses.sort_by(|a, b| compare_key("created_at", a, b));
     let output = serde_json::Value::Array(statuses);
 
