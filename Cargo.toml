@@ -12,7 +12,12 @@ clap = { version = "4.5.21", features = ["derive", "env"] }
 dotenvy = "0.15.7"
 env_logger = "0.11.5"
 log = "0.4.22"
-reqwest = { version = "0.12.9", features = ["blocking", "json", "rustls-tls"] }
+reqwest = { version = "0.12.9", features = [
+    "blocking",
+    "http2",
+    "json",
+    "rustls-tls",
+], default-features = false }
 serde_json = "1.0.132"
 
 # The profile that 'dist' will build with
