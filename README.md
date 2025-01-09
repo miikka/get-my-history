@@ -5,6 +5,7 @@ This is a small command-line tool to get your Mastodon posts (toots) as one big 
 ## Setup
 
 There [releases available](https://github.com/miikka/get-my-history/releases) on GitHub with pre-built binaries.
+The release artifacts also include [a DotSlash file](https://dotslash-cli.com/).
 Alternatively, you can build the project yourself:
 
 ```bash
